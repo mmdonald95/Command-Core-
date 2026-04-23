@@ -1,16 +1,24 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
-import { visualEditPlugin } from './vite-plugins/visual-edit-plugin.js'
-import { errorOverlayPlugin } from './vite-plugins/error-overlay-plugin.js'
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => {
+export default defineConfig(async ({ mode }) => {
+  const developmentPlugins = [];
+
+  if (mode === 'development') {
+    const [{ visualEditPlugin }, { errorOverlayPlugin }] = await Promise.all([
+      import('./vite-plugins/visual-edit-plugin.js'),
+      import('./vite-plugins/error-overlay-plugin.js'),
+    ]);
+
+    developmentPlugins.push(visualEditPlugin(), errorOverlayPlugin());
+  }
+
   return {
     plugins: [
-      mode === 'development' && visualEditPlugin(),
       react(),
-      errorOverlayPlugin(),
+      ...developmentPlugins,
       {
         name: 'iframe-hmr',
         configureServer(server) {
