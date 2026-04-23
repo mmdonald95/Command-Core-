@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { AuthProvider } from './src/lib/AuthContext.jsx'
 import { hasPermission, hasRole } from '@/lib/roles';
 
 const Welcome = lazy(() => import('@/pages/Welcome'));
