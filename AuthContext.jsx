@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
-import { supabase } from './src/lib/supabase.js';
+import { supabase } from '@/lib/supabase';
 import {
   applyCompanyThemeToDocument,
   getCompanyTheme,
