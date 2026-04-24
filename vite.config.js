@@ -1,22 +1,68 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import path from 'path'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// https://vite.dev/config/
+export default defineConfig(async ({ mode }) => {
+  const developmentPlugins = [];
 
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      'react': path.resolve(__dirname, './node_modules/react'),
-      'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
+  if (mode === 'development') {
+    const [{ visualEditPlugin }, { errorOverlayPlugin }] = await Promise.all([
+      import('./vite-plugins/visual-edit-plugin.js'),
+      import('./vite-plugins/error-overlay-plugin.js'),
+    ]);
+
+    developmentPlugins.push(visualEditPlugin(), errorOverlayPlugin());
+  }
+
+  return {
+    plugins: [
+      react(),
+      ...developmentPlugins,
+      {
+        name: 'iframe-hmr',
+        configureServer(server) {
+          server.middlewares.use((req, res, next) => {
+            // Allow iframe embedding
+            res.setHeader('X-Frame-Options', 'ALLOWALL');
+            res.setHeader('Content-Security-Policy', "frame-ancestors *;");
+            next();
+          });
+        }
+      }
+    ].filter(Boolean),
+    server: {
+      host: '0.0.0.0', // Bind to all interfaces for container access
+      port: 5173,
+      strictPort: true,
+      // Allow all hosts - essential for Modal tunnel URLs
+      allowedHosts: true,
+      watch: {
+        // Enable polling for better file change detection in containers
+        usePolling: true,
+        interval: 100, // Check every 100ms for responsive HMR
+      },
+      hmr: {
+        protocol: 'wss',
+        clientPort: 443
+      }
     },
-    dedupe: ['react', 'react-dom'],
-  },
-  optimizeDeps: {
-    include: ['react', 'react-dom'],
-    force: true,
-  },
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      },
+      extensions: ['.mjs', '.js', '.jsx', '.ts', '.tsx', '.json']
+    },
+    optimizeDeps: {
+      include: ['react', 'react-dom'],
+      esbuildOptions: {
+        loader: {
+          '.js': 'jsx',
+        },
+      },
+    },
+    build: {
+      chunkSizeWarningLimit: 900,
+    },
+  }
 });
